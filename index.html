@@ -57,6 +57,21 @@
 					</div>
 				</calcite-notice>
 
+				<!-- Applied column filters. Hidden until at least one is active;
+				     projects.js fills it with removable chips + a Clear all button. -->
+				<div id="active-filters" class="active-filters" hidden>
+					<span class="af-label">Filters:</span>
+					<div id="filter-chips" class="filter-chips"></div>
+					<calcite-button
+						id="clear-all-filters"
+						appearance="transparent"
+						kind="danger"
+						scale="s"
+						icon-start="x-circle">
+						Clear all
+					</calcite-button>
+				</div>
+
 				<div id="table-wrap">
 					<!-- attachments-enabled: view attachments per row.
 					     hide-selection-column: drop the multi-select checkbox column
@@ -80,6 +95,34 @@
 				<div slot="message" id="alert-message"></div>
 			</calcite-alert>
 		</calcite-shell>
+
+		<!-- Column filter modal (replaces window.prompt). Opened from a column's
+		     ⋯ menu → Filter…; projects.js fills the heading and input value. -->
+		<calcite-modal
+			id="filter-dialog"
+			width-scale="s"
+			aria-labelledby="filter-dialog-heading">
+			<div slot="header" id="filter-dialog-heading">Filter</div>
+			<div slot="content">
+				<calcite-label>
+					<span id="filter-dialog-label">Value contains</span>
+					<calcite-input
+						id="filter-input"
+						placeholder="Type a value…"
+						clearable></calcite-input>
+				</calcite-label>
+			</div>
+			<calcite-button
+				slot="secondary"
+				appearance="outline"
+				kind="neutral"
+				id="filter-cancel">
+				Cancel
+			</calcite-button>
+			<calcite-button slot="primary" id="filter-apply">
+				Apply filter
+			</calcite-button>
+		</calcite-modal>
 
 		<calcite-scrim id="boot-scrim" loading></calcite-scrim>
 

@@ -39,6 +39,39 @@ arcgis-feature-table [role="row"] {
 	cursor: pointer;
 }
 
+/* ---- applied filters bar ----------------------------------------------- */
+
+.active-filters {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0.5rem 0.75rem;
+	border-block-end: 1px solid var(--calcite-color-border-3);
+	background: var(--calcite-color-foreground-2);
+}
+
+.active-filters[hidden] {
+	display: none;
+}
+
+.active-filters .af-label {
+	font-size: 0.8rem;
+	font-weight: 500;
+	color: var(--calcite-color-text-3);
+}
+
+.filter-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	flex: 1;
+}
+
+#clear-all-filters {
+	margin-inline-start: auto;
+}
+
 /* ---- details header ---------------------------------------------------- */
 
 .project-heading {

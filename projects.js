@@ -58,30 +58,82 @@ function buildTableTemplate() {
   };
 }
 
-/** Ask for a substring and filter this column by it (case-insensitive). */
+/* The column currently being edited in the filter dialog. */
+let filterField = null;
+
+/** Open the Calcite filter modal for a column, pre-filled with its filter. */
 function promptFilter(field, label) {
-  const current = activeFilters[field] || "";
-  const value = window.prompt(`Filter "${label}" contains:`, current);
-  if (value === null) return; // cancelled
-  applyFilter(field, value.trim() || null);
+  filterField = field;
+  const dialog = $("filter-dialog");
+  const input = $("filter-input");
+  $("filter-dialog-heading").textContent = `Filter — ${label}`;
+  $("filter-dialog-label").textContent = `"${label}" contains`;
+  input.value = activeFilters[field] || "";
+  dialog.open = true;
+  // Focus the input once the modal has opened.
+  requestAnimationFrame(() => input.setFocus && input.setFocus());
 }
 
-/** Set or clear a column filter, then rebuild the layer definitionExpression. */
+/** Wire the filter modal + Clear all interactions once. */
+function wireFilterDialog() {
+  const dialog = $("filter-dialog");
+  const input = $("filter-input");
+
+  const apply = () => {
+    if (filterField) applyFilter(filterField, input.value.trim() || null);
+    dialog.open = false;
+  };
+
+  $("filter-apply").addEventListener("click", apply);
+  $("filter-cancel").addEventListener("click", () => (dialog.open = false));
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") apply();
+  });
+  $("clear-all-filters").addEventListener("click", clearAllFilters);
+}
+
+/** Set or clear one column filter. */
 function applyFilter(field, value) {
   if (value) activeFilters[field] = value;
   else delete activeFilters[field];
+  syncFilters();
+}
 
+/** Clear every column filter at once. */
+function clearAllFilters() {
+  Object.keys(activeFilters).forEach((f) => delete activeFilters[f]);
+  syncFilters();
+}
+
+/** Rebuild the layer definitionExpression and the applied-filters chip bar. */
+function syncFilters() {
   const clauses = Object.entries(activeFilters).map(
     ([f, v]) => `UPPER(${f}) LIKE UPPER('%${v.replace(/'/g, "''")}%')`
   );
   projectsLayer.definitionExpression = clauses.join(" AND ");
+  renderFilterChips();
+}
 
-  const active = Object.keys(activeFilters).length;
-  alertUser(
-    "Filter updated",
-    active ? `${active} column filter(s) applied.` : "Filters cleared.",
-    "info"
-  );
+/** Render one removable chip per active filter above the table. */
+function renderFilterChips() {
+  const bar = $("active-filters");
+  const chips = $("filter-chips");
+  chips.innerHTML = "";
+
+  const entries = Object.entries(activeFilters);
+  bar.hidden = entries.length === 0;
+
+  entries.forEach(([field, value]) => {
+    const col = CFG.projectColumns.find((c) => c.field === field);
+    const chip = document.createElement("calcite-chip");
+    chip.setAttribute("closable", "");
+    chip.setAttribute("scale", "s");
+    chip.setAttribute("appearance", "outline-fill");
+    chip.setAttribute("kind", "brand");
+    chip.textContent = `${col ? col.label : field}: ${value}`;
+    chip.addEventListener("calciteChipClose", () => applyFilter(field, null));
+    chips.appendChild(chip);
+  });
 }
 
 async function initTable() {
@@ -98,6 +150,8 @@ async function initTable() {
   const tableEl = $("projects-table");
   tableEl.tableTemplate = buildTableTemplate();
   tableEl.layer = projectsLayer;
+
+  wireFilterDialog();
 
   // Whole-row navigation: clicking any cell in a row opens that project.
   tableEl.addEventListener("arcgisCellClick", (event) => {
