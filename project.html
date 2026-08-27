@@ -79,15 +79,11 @@
 						>
 					</calcite-tab-nav>
 
-					<!-- Overview -->
+					<!-- Overview: panels (Project / Survey / Design / Cartography)
+					     are built from config.overviewSections by project.js. -->
 					<calcite-tab tab="overview">
 						<div class="tab-body">
-							<calcite-block
-								open
-								heading="Project Details"
-								icon-start="information">
-								<dl class="detail-list" id="overview-list"></dl>
-							</calcite-block>
+							<div id="overview-sections"></div>
 						</div>
 					</calcite-tab>
 

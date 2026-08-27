@@ -64,12 +64,51 @@ window.APP_CONFIG = {
     { field: "funding_category", label: "Funding Category", width: 180 }
   ],
 
-  /* Fields shown on the details page Overview tab, in order. */
-  overviewFields: [
-    { field: "reference_number", label: "Reference Number" },
-    { field: "implementation_status", label: "Implementation Status" },
-    { field: "funding_year", label: "Funding Year" },
-    { field: "initiator_category", label: "Initiator Category" },
-    { field: "funding_category", label: "Funding Category" }
+  /* Overview tab panels. Each section renders as a collapsible calcite-block
+   * with its fields as a definition list, in order. Date fields are detected
+   * from the layer schema and formatted automatically. */
+  overviewSections: [
+    {
+      title: "Project Details",
+      icon: "information",
+      fields: [
+        { field: "reference_number", label: "Reference Number" },
+        { field: "implementation_status", label: "Implementation Status" },
+        { field: "funding_year", label: "Funding Year" },
+        { field: "initiator_category", label: "Initiator Category" },
+        { field: "funding_category", label: "Funding Category" },
+        { field: "constituency", label: "Constituency" }
+      ]
+    },
+    {
+      title: "Survey Details",
+      icon: "compass",
+      fields: [
+        { field: "surveyed_by", label: "Surveyed By" },
+        { field: "survey_completion_date", label: "Survey Completion Date" },
+        { field: "survey_approved_by", label: "Survey Approved By" },
+        { field: "survey_approved_date", label: "Survey Approved Date" }
+      ]
+    },
+    {
+      title: "Design Details",
+      icon: "pencil",
+      fields: [
+        { field: "designed_by", label: "Designed By" },
+        { field: "design_completion_date", label: "Design Completion Date" },
+        { field: "design_approved_by", label: "Design Approved By" },
+        { field: "design_approved_date", label: "Design Approved Date" }
+      ]
+    },
+    {
+      title: "Cartography Details",
+      icon: "map",
+      fields: [
+        { field: "cartography_by", label: "Cartography By" },
+        { field: "cartography_completion_date", label: "Cartography Completion Date" },
+        { field: "cartography_approved_by", label: "Cartography Approved By" },
+        { field: "cartography_approval_date", label: "Cartography Approval Date" }
+      ]
+    }
   ]
 };

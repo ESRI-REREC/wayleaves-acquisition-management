@@ -34,12 +34,17 @@ function getOid() {
   return oid ? Number(oid) : null;
 }
 
+/* field name -> esri field type, captured from the layer so we can format
+ * date fields in the Overview panels. */
+const fieldTypes = {};
+
 async function fetchProject(oid) {
   const layer = new FeatureLayer({
     url: CFG.projectsLayerUrl,
     outFields: ["*"]
   });
   await layer.load();
+  layer.fields.forEach((f) => (fieldTypes[f.name] = f.type));
 
   const result = await layer.queryFeatures({
     objectIds: [oid],
@@ -73,17 +78,46 @@ function renderHeader(attrs) {
   }
 }
 
+/** Format one attribute for display: dates → readable, empties → em dash. */
+function formatValue(value, field) {
+  if (value == null || value === "") return "—";
+  // JS SDK Field.type uses short forms, e.g. "date" (not "esriFieldTypeDate").
+  if (["date", "date-only", "timestamp-offset"].includes(fieldTypes[field])) {
+    return new Date(value).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+  }
+  return String(value);
+}
+
+/** Build one collapsible panel per config.overviewSections section. */
 function renderOverview(attrs) {
-  const list = $("overview-list");
-  list.innerHTML = "";
-  CFG.overviewFields.forEach((f) => {
-    const value = attrs[f.field];
-    const dt = document.createElement("dt");
-    dt.textContent = f.label;
-    const dd = document.createElement("dd");
-    dd.textContent = value == null || value === "" ? "—" : String(value);
-    list.appendChild(dt);
-    list.appendChild(dd);
+  const container = $("overview-sections");
+  container.innerHTML = "";
+
+  CFG.overviewSections.forEach((section, idx) => {
+    const block = document.createElement("calcite-block");
+    block.setAttribute("heading", section.title);
+    block.setAttribute("collapsible", "");
+    // Only the first panel (Project Details) is expanded by default.
+    if (idx === 0) block.setAttribute("open", "");
+    if (section.icon) block.setAttribute("icon-start", section.icon);
+
+    const dl = document.createElement("dl");
+    dl.className = "detail-list";
+    section.fields.forEach((f) => {
+      const dt = document.createElement("dt");
+      dt.textContent = f.label;
+      const dd = document.createElement("dd");
+      dd.textContent = formatValue(attrs[f.field], f.field);
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    });
+
+    block.appendChild(dl);
+    container.appendChild(block);
   });
 }
 
