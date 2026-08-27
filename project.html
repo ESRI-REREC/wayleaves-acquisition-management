@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en" class="calcite-mode-light">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+		<title>Project · Wayleave Acquisition Management</title>
+
+		<!-- Import map: lets the Map Components package resolve its internal bare
+		     `@arcgis/core/...` imports to the same 4.31 CDN build the page imports,
+		     giving one shared JSAPI instance. MUST come before any module script. -->
+		<script type="importmap">
+			{
+				"imports": {
+					"@arcgis/core/": "https://js.arcgis.com/4.31/@arcgis/core/"
+				}
+			}
+		</script>
+
+		<!-- Calcite Design System -->
+		<link
+			rel="stylesheet"
+			href="https://js.arcgis.com/calcite-components/2.13.2/calcite.css" />
+		<script
+			type="module"
+			src="https://js.arcgis.com/calcite-components/2.13.2/calcite.esm.js"></script>
+
+		<!-- ArcGIS Maps SDK for JavaScript theme -->
+		<link
+			rel="stylesheet"
+			href="https://js.arcgis.com/4.31/esri/themes/light/main.css" />
+
+		<!-- ArcGIS Map Components (provides <arcgis-map>). Its core is loaded from
+		     the same /4.31/@arcgis/core CDN path the page imports, so there is a
+		     single shared JSAPI instance. -->
+		<script
+			type="module"
+			src="https://js.arcgis.com/4.31/map-components/arcgis-map-components.esm.js"></script>
+
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+
+	<body>
+		<calcite-shell>
+			<calcite-panel id="project-panel">
+				<!-- Title + reference number -->
+				<calcite-action
+					slot="header-actions-start"
+					icon="chevron-left"
+					text="Back to projects"
+					id="back-btn"></calcite-action>
+
+				<div slot="header-content" class="project-heading">
+					<span class="project-title" id="project-title">Loading…</span>
+					<span class="project-ref" id="project-ref"></span>
+				</div>
+
+				<calcite-chip
+					slot="header-actions-end"
+					id="status-chip"
+					scale="s"
+					kind="neutral"
+					appearance="outline"
+					hidden></calcite-chip>
+
+				<!-- Tabs fill the panel's default content region (full width + height).
+				     Do NOT use slot="content-top": that slot shrinks to its content. -->
+				<calcite-tabs bordered>
+					<calcite-tab-nav slot="title-group">
+						<calcite-tab-title selected tab="overview"
+							>Overview</calcite-tab-title
+						>
+						<calcite-tab-title tab="corridor"
+							>Wayleave Corridor</calcite-tab-title
+						>
+						<calcite-tab-title tab="parcels"
+							>Affected Parcels</calcite-tab-title
+						>
+					</calcite-tab-nav>
+
+					<!-- Overview -->
+					<calcite-tab tab="overview">
+						<div class="tab-body">
+							<calcite-block
+								open
+								heading="Project Details"
+								icon-start="information">
+								<dl class="detail-list" id="overview-list"></dl>
+							</calcite-block>
+						</div>
+					</calcite-tab>
+
+					<!-- Wayleave Corridor -->
+					<calcite-tab tab="corridor">
+						<div class="map-tab">
+							<arcgis-map id="corridor-map">
+								<arcgis-zoom position="top-left"></arcgis-zoom>
+							</arcgis-map>
+							<div class="map-toolbar">
+								<calcite-button
+									scale="s"
+									icon-start="line"
+									appearance="solid"
+									kind="brand"
+									id="generate-corridor-btn">
+									Generate Corridor
+								</calcite-button>
+							</div>
+							<calcite-notice open scale="s" kind="info" class="map-note">
+								<div slot="title">Corridor not generated yet</div>
+								<div slot="message">
+									The route, corridor and affected parcels will render here once
+									wired to the backend server.
+								</div>
+							</calcite-notice>
+						</div>
+					</calcite-tab>
+
+					<!-- Affected Parcels -->
+					<calcite-tab tab="parcels">
+						<div class="tab-body">
+							<div class="empty-state">
+								<calcite-icon icon="parcel" scale="l"></calcite-icon>
+								<p class="empty-title">No affected parcels yet</p>
+								<p class="empty-sub">
+									Generate a corridor to compute the parcels this project
+									crosses. Parcel acquisition status will be listed here.
+								</p>
+							</div>
+						</div>
+					</calcite-tab>
+				</calcite-tabs>
+			</calcite-panel>
+
+			<calcite-alert
+				id="app-alert"
+				auto-close
+				auto-close-duration="medium"
+				scale="m"
+				slot="alerts">
+				<div slot="title" id="alert-title"></div>
+				<div slot="message" id="alert-message"></div>
+			</calcite-alert>
+		</calcite-shell>
+
+		<calcite-scrim id="boot-scrim" loading></calcite-scrim>
+
+		<script src="config.js"></script>
+		<script src="auth.js"></script>
+		<script type="module" src="project.js"></script>
+	</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" class="calcite-mode-light">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+		<title>Wayleave Acquisition Management</title>
+
+		<!-- Import map: lets the Map Components package resolve its internal bare
+		     `@arcgis/core/...` imports to the same 4.31 CDN build the page loads,
+		     giving one shared JSAPI instance. MUST come before any module script. -->
+		<script type="importmap">
+			{
+				"imports": {
+					"@arcgis/core/": "https://js.arcgis.com/4.31/@arcgis/core/"
+				}
+			}
+		</script>
+
+		<!-- Calcite Design System -->
+		<link
+			rel="stylesheet"
+			href="https://js.arcgis.com/calcite-components/2.13.2/calcite.css" />
+		<script
+			type="module"
+			src="https://js.arcgis.com/calcite-components/2.13.2/calcite.esm.js"></script>
+
+		<!-- ArcGIS Maps SDK for JavaScript theme -->
+		<link
+			rel="stylesheet"
+			href="https://js.arcgis.com/4.31/esri/themes/light/main.css" />
+
+		<!-- ArcGIS Map Components (provides <arcgis-feature-table>). Its core is
+		     loaded from the same /4.31/@arcgis/core CDN path the page imports, so
+		     there is a single shared JSAPI instance. -->
+		<script
+			type="module"
+			src="https://js.arcgis.com/4.31/map-components/arcgis-map-components.esm.js"></script>
+
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+
+	<body>
+		<calcite-shell>
+			<!-- App header -->
+
+			<calcite-panel>
+				<calcite-notice
+					open
+					scale="s"
+					kind="brand"
+					icon="cursor-click"
+					class="table-hint">
+					<div slot="message">
+						Click a project row to open its wayleave details.
+					</div>
+				</calcite-notice>
+
+				<div id="table-wrap">
+					<!-- attachments-enabled: view attachments per row.
+					     hide-selection-column: drop the multi-select checkbox column
+					     (also switches the header to the no-selection-count form).
+					     Column menus (sort + filter) are shown by default. -->
+					<arcgis-feature-table
+						id="projects-table"
+						attachments-enabled
+						hide-selection-column
+						hide-header></arcgis-feature-table>
+				</div>
+			</calcite-panel>
+
+			<calcite-alert
+				id="app-alert"
+				auto-close
+				auto-close-duration="medium"
+				scale="m"
+				slot="alerts">
+				<div slot="title" id="alert-title"></div>
+				<div slot="message" id="alert-message"></div>
+			</calcite-alert>
+		</calcite-shell>
+
+		<calcite-scrim id="boot-scrim" loading></calcite-scrim>
+
+		<script src="config.js"></script>
+		<script src="auth.js"></script>
+		<script type="module" src="projects.js"></script>
+	</body>
+</html>

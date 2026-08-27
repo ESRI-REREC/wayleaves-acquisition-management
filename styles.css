@@ -1,0 +1,166 @@
+html,
+body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+	font-family: var(--calcite-sans-family, "Avenir Next", "Helvetica Neue", sans-serif);
+}
+
+calcite-shell {
+	height: 100%;
+}
+
+/* ---- projects list ----------------------------------------------------- */
+
+.table-hint {
+	margin: 0.75rem;
+	width: calc(100% - 1.5rem);
+}
+
+.table-hint calcite-icon {
+	vertical-align: middle;
+}
+
+#table-wrap {
+	position: relative;
+	height: 100%;
+	min-height: 0;
+}
+
+arcgis-feature-table {
+	height: 100%;
+	width: 100%;
+	display: block;
+}
+
+/* Rows read as actionable — clicking one opens the project. */
+arcgis-feature-table [role="row"] {
+	cursor: pointer;
+}
+
+/* ---- details header ---------------------------------------------------- */
+
+.project-heading {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.25;
+	gap: 0.15rem;
+}
+
+.project-title {
+	font-size: 1.15rem;
+	font-weight: 600;
+	color: var(--calcite-color-text-1);
+}
+
+.project-ref {
+	font-size: 0.8rem;
+	color: var(--calcite-color-text-3);
+}
+
+/* ---- tabs -------------------------------------------------------------- */
+
+.tab-body {
+	padding: 1rem;
+}
+
+.detail-list {
+	display: grid;
+	grid-template-columns: minmax(10rem, 14rem) 1fr;
+	gap: 0.5rem 1.5rem;
+	margin: 0;
+}
+
+.detail-list dt {
+	font-weight: 500;
+	color: var(--calcite-color-text-3);
+}
+
+.detail-list dd {
+	margin: 0;
+	color: var(--calcite-color-text-1);
+}
+
+/* ---- fill chain: panel content -> tabs -> tab body -> map --------------- *
+ * The tabs live in the panel's default content slot, which fills the panel.
+ * Each link below passes that width + height down so the route map fills the
+ * whole available area instead of collapsing to its content size. */
+
+calcite-tabs {
+	inline-size: 100%; /* full width */
+	block-size: 100%; /* full height */
+}
+
+/* calcite-tabs renders its bodies into an internal "content" region; let it
+ * grow to fill the height left under the tab nav. */
+calcite-tabs::part(content) {
+	flex: 1 1 auto;
+	min-block-size: 0;
+}
+
+/* The selected tab body fills the content region. */
+calcite-tab {
+	block-size: 100%;
+}
+
+/* ---- map tab ----------------------------------------------------------- */
+
+.map-tab {
+	position: relative;
+	block-size: 100%;
+	min-block-size: 0;
+}
+
+arcgis-map {
+	height: 100%;
+	width: 100%;
+	display: block;
+}
+
+.map-toolbar {
+	position: absolute;
+	top: 0.75rem;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 5;
+}
+
+.map-note {
+	position: absolute;
+	bottom: 0.75rem;
+	left: 0.75rem;
+	max-width: 22rem;
+	z-index: 5;
+}
+
+/* ---- empty state ------------------------------------------------------- */
+
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 0.35rem;
+	padding: 3rem 1rem;
+	color: var(--calcite-color-text-3);
+}
+
+.empty-title {
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--calcite-color-text-2);
+	margin: 0.5rem 0 0;
+}
+
+.empty-sub {
+	max-width: 26rem;
+	margin: 0;
+	font-size: 0.85rem;
+}
+
+/* ---- boot scrim -------------------------------------------------------- */
+
+#boot-scrim[hidden] {
+	display: none;
+}
