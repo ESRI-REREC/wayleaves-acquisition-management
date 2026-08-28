@@ -76,8 +76,7 @@ window.APP_CONFIG = {
         { field: "implementation_status", label: "Implementation Status" },
         { field: "funding_year", label: "Funding Year" },
         { field: "initiator_category", label: "Initiator Category" },
-        { field: "funding_category", label: "Funding Category" },
-        { field: "constituency", label: "Constituency" }
+        { field: "funding_category", label: "Funding Category" }
       ]
     },
     {
