@@ -15,7 +15,7 @@ window.APP_CONFIG = {
 
   // The Projects hosted table (non-spatial). Row per wayleave project.
   projectsLayerUrl:
-    "https://development.esriea.com/server/rest/services/Hosted/Projects/FeatureServer/0",
+    "https://development.esriea.com/server/rest/services/Hosted/electrification_projects/FeatureServer/0",
 
   // Parcels polygon layer (Wayleaves service). Shown on the corridor map as the
   // default backdrop until a wayleave corridor has been generated.
@@ -56,8 +56,8 @@ window.APP_CONFIG = {
    * on the service. `label` overrides the field alias in the header. The page
    * appends an "Open" action icon after the last column. */
   projectColumns: [
-    { field: "name", label: "Project Name", width: 200 },
-    { field: "reference_number", label: "Reference No.", width: 150 },
+    { field: "project_name", label: "Project Name", width: 200 },
+    { field: "project_reference_number", label: "Reference No.", width: 150 },
     { field: "implementation_status", label: "Implementation Status", width: 160 },
     { field: "funding_year", label: "Funding Year", width: 120 },
     { field: "initiator_category", label: "Initiator Category", width: 170 },
@@ -72,7 +72,7 @@ window.APP_CONFIG = {
       title: "Project Details",
       icon: "information",
       fields: [
-        { field: "reference_number", label: "Reference Number" },
+        { field: "project_reference_number", label: "Reference Number" },
         { field: "implementation_status", label: "Implementation Status" },
         { field: "funding_year", label: "Funding Year" },
         { field: "initiator_category", label: "Initiator Category" },

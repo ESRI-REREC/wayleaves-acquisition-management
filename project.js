@@ -62,11 +62,11 @@ async function fetchProject(oid) {
  * ------------------------------------------------------------------------ */
 
 function renderHeader(attrs) {
-  $("project-title").textContent = attrs.name || "Untitled project";
+  $("project-title").textContent = attrs.project_name || "Untitled project";
   document.title =
-    (attrs.name || "Project") + " · Wayleave Acquisition Management";
+    (attrs.project_name || "Project") + " · Wayleave Acquisition Management";
 
-  const ref = attrs.reference_number;
+  const ref = attrs.project_reference_number;
   $("project-ref").textContent = ref ? "Ref: " + ref : "";
 
   const status = attrs.implementation_status;

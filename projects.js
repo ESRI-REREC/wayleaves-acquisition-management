@@ -142,7 +142,7 @@ async function initTable() {
     outFields: ["*"],
     // Label records by project name (e.g. in the attachments view breadcrumb)
     // instead of the default OBJECTID.
-    displayField: "name"
+    displayField: "project_name"
   });
 
   await projectsLayer.load();
