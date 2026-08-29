@@ -92,6 +92,13 @@ arcgis-feature-table [role="row"] {
 	color: var(--calcite-color-text-3);
 }
 
+/* Vertically centre the status badge so it stays aligned with the title even
+ * when the title wraps to two lines. The panel's header-actions-end <slot> is
+ * display: contents, so the chip itself is the flex item to align. */
+#status-chip {
+	align-self: center;
+}
+
 /* ---- tabs -------------------------------------------------------------- */
 
 .tab-body {
