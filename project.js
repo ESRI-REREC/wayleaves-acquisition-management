@@ -11,6 +11,7 @@
 import esriConfig from "https://js.arcgis.com/4.31/@arcgis/core/config.js";
 import FeatureLayer from "https://js.arcgis.com/4.31/@arcgis/core/layers/FeatureLayer.js";
 import GroupLayer from "https://js.arcgis.com/4.31/@arcgis/core/layers/GroupLayer.js";
+import Graphic from "https://js.arcgis.com/4.31/@arcgis/core/Graphic.js";
 import Extent from "https://js.arcgis.com/4.31/@arcgis/core/geometry/Extent.js";
 import esriId from "https://js.arcgis.com/4.31/@arcgis/core/identity/IdentityManager.js";
 
@@ -148,6 +149,41 @@ async function loadAssetLayers(map) {
   map.add(group);
 }
 
+/** Zoom the map to the Facilities point whose reference_number matches the
+ * project, dropping a marker there. Returns true if it framed a facility. */
+async function centerOnFacility(view, ref) {
+  if (!ref) return false;
+  try {
+    const facilities = new FeatureLayer({ url: CFG.facilitiesLayerUrl });
+    await facilities.load();
+    const result = await facilities.queryFeatures({
+      where: `reference_number = '${ref.replace(/'/g, "''")}'`,
+      outFields: ["objectid", "name"],
+      returnGeometry: true,
+      num: 1
+    });
+    const feature = (result.features || [])[0];
+    if (!feature || !feature.geometry) return false;
+
+    view.graphics.add(
+      new Graphic({
+        geometry: feature.geometry,
+        symbol: {
+          type: "simple-marker",
+          style: "circle",
+          size: 14,
+          color: [0, 122, 194, 0.9],
+          outline: { color: [255, 255, 255], width: 2 }
+        }
+      })
+    );
+    await view.goTo({ target: feature.geometry, zoom: CFG.mapFacilityZoom || 17 });
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 /** Populate the affected-parcels panel. Zeros until the backend computes the
  * corridor's affected parcels; call with real counts once wired. */
 function renderAcquisitionStats(stats) {
@@ -199,16 +235,16 @@ function wireCorridorPanel() {
   renderAcquisitionStats(); // zeros for now
 }
 
-function initMap() {
+function initMap(attrs) {
   const mapEl = $("corridor-map");
   mapEl.basemap = CFG.basemap;
-  // Fallback framing (Nairobi) until the parcels extent is known.
+  // Fallback framing (Nairobi) until the facility point is located.
   mapEl.center = CFG.initialCenter;
   mapEl.zoom = CFG.initialZoom;
 
   // Default state — no wayleave corridor generated yet: show every parcel from
   // the Wayleaves parcels layer plus all Survey & Design Assets sublayers, and
-  // frame the map to Kenya's extent.
+  // zoom to the project's associated facility (falling back to Kenya's extent).
   const parcels = new FeatureLayer({
     url: CFG.parcelsLayerUrl,
     outFields: ["*"],
@@ -225,11 +261,17 @@ function initMap() {
     } catch (err) {
       alertUser("Asset layers", err.message, "warning");
     }
-    try {
-      // Open to the extent of Kenya (the parcels sit within it).
-      await mapEl.view.goTo(new Extent(CFG.kenyaExtent));
-    } catch (err) {
-      /* keep the fallback view if framing fails */
+    // Zoom to the associated facility; if none matches, frame Kenya's extent.
+    const framed = await centerOnFacility(
+      mapEl.view,
+      attrs && attrs.project_reference_number
+    );
+    if (!framed) {
+      try {
+        await mapEl.view.goTo(new Extent(CFG.kenyaExtent));
+      } catch (err) {
+        /* keep the fallback view if framing fails */
+      }
     }
   };
 
@@ -278,7 +320,7 @@ async function boot() {
     renderOverview(attrs);
 
     await customElements.whenDefined("arcgis-map");
-    initMap();
+    initMap(attrs);
   } catch (err) {
     $("project-title").textContent = "Could not load project";
     alertUser("Error", err.message, "danger");

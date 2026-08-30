@@ -27,6 +27,13 @@ window.APP_CONFIG = {
   assetsServiceUrl:
     "https://development.esriea.com/server/rest/services/Hosted/Survey_and_Design_Assets/FeatureServer",
 
+  // Facilities layer — the corridor map zooms to the facility point whose
+  // reference_number matches the project's.
+  facilitiesLayerUrl:
+    "https://development.esriea.com/server/rest/services/Hosted/Facilities/FeatureServer/0",
+  // Zoom level used when framing the associated facility point.
+  mapFacilityZoom: 17,
+
   // Portal item the "Digitize parcels" button opens (e.g. a Map Viewer / editing
   // app for drawing parcels). TODO: replace the id with the real item.
   digitizeParcelsUrl:
