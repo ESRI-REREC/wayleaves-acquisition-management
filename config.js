@@ -22,6 +22,16 @@ window.APP_CONFIG = {
   parcelsLayerUrl:
     "https://development.esriea.com/server/rest/services/Hosted/Wayleaves/FeatureServer/0",
 
+  // Survey & Design Assets feature service — every sublayer is added to the
+  // corridor map (toggled via the layer list).
+  assetsServiceUrl:
+    "https://development.esriea.com/server/rest/services/Hosted/Survey_and_Design_Assets/FeatureServer",
+
+  // Portal item the "Digitize parcels" button opens (e.g. a Map Viewer / editing
+  // app for drawing parcels). TODO: replace the id with the real item.
+  digitizeParcelsUrl:
+    "https://development.esriea.com/portal/home/item.html?id=REPLACE_WITH_ITEM_ID",
+
   // Token server (../server). Holds the credentials and exposes GET /api/token.
   // No trailing slash. Swap this for your local Next.js dev server
   // (e.g. "http://localhost:3000") when running the backend yourself.

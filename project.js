@@ -10,6 +10,7 @@
 
 import esriConfig from "https://js.arcgis.com/4.31/@arcgis/core/config.js";
 import FeatureLayer from "https://js.arcgis.com/4.31/@arcgis/core/layers/FeatureLayer.js";
+import GroupLayer from "https://js.arcgis.com/4.31/@arcgis/core/layers/GroupLayer.js";
 import Extent from "https://js.arcgis.com/4.31/@arcgis/core/geometry/Extent.js";
 import esriId from "https://js.arcgis.com/4.31/@arcgis/core/identity/IdentityManager.js";
 
@@ -121,6 +122,83 @@ function renderOverview(attrs) {
   });
 }
 
+/** Add every Survey_and_Design_Assets sublayer to the map, grouped so the layer
+ * list stays tidy. All layers render (visible) by default. */
+async function loadAssetLayers(map) {
+  const token = await Auth.valid();
+  const res = await fetch(
+    CFG.assetsServiceUrl + "?f=json&token=" + encodeURIComponent(token)
+  );
+  const svc = await res.json();
+  if (svc.error) throw new Error(svc.error.message || "Could not read asset layers.");
+
+  const group = new GroupLayer({
+    title: "Survey & Design Assets",
+    visibilityMode: "independent"
+  });
+  (svc.layers || []).forEach((l) => {
+    group.add(
+      new FeatureLayer({
+        url: CFG.assetsServiceUrl + "/" + l.id,
+        title: l.name,
+        outFields: ["*"]
+      })
+    );
+  });
+  map.add(group);
+}
+
+/** Populate the affected-parcels panel. Zeros until the backend computes the
+ * corridor's affected parcels; call with real counts once wired. */
+function renderAcquisitionStats(stats) {
+  const s = stats || { total: 0, notAcquired: 0, acquired: 0, pending: 0, failed: 0 };
+  $("parcels-total").textContent = s.total;
+  $("dist-not-acquired").textContent = s.notAcquired;
+  $("dist-acquired").textContent = s.acquired;
+  $("dist-pending").textContent = s.pending;
+  $("dist-failed").textContent = s.failed;
+}
+
+/** Show / hide the floating affected-parcels panel. */
+function setCorridorPanelOpen(open) {
+  if (open) $("corridor-panel").closed = false; // clear the panel's own close
+  $("corridor-card").hidden = !open;
+  $("corridor-reopen").hidden = open;
+}
+
+/** Wire the corridor panel: close/reopen + the three action buttons. */
+function wireCorridorPanel() {
+  $("corridor-panel").addEventListener("calcitePanelClose", () =>
+    setCorridorPanelOpen(false)
+  );
+  $("corridor-reopen").addEventListener("click", () => setCorridorPanelOpen(true));
+
+  $("generate-corridor-btn").addEventListener("click", () => {
+    alertUser(
+      "Not wired up yet",
+      "Corridor generation will call the backend server.",
+      "info"
+    );
+  });
+
+  // Upload parcels .shp — opens a file picker but does nothing with it yet.
+  const input = $("parcels-input");
+  $("upload-parcels-btn").addEventListener("click", () => input.click());
+  input.addEventListener("change", () => {
+    input.value = ""; // discard the selection
+    alertUser("Received", "Parcel shapefile upload isn’t wired up yet.", "info");
+  });
+
+  // Digitize parcels — open the configured portal item in a new tab.
+  $("digitize-parcels-btn").addEventListener("click", () => {
+    if (CFG.digitizeParcelsUrl) {
+      window.open(CFG.digitizeParcelsUrl, "_blank", "noopener");
+    }
+  });
+
+  renderAcquisitionStats(); // zeros for now
+}
+
 function initMap() {
   const mapEl = $("corridor-map");
   mapEl.basemap = CFG.basemap;
@@ -129,18 +207,24 @@ function initMap() {
   mapEl.zoom = CFG.initialZoom;
 
   // Default state — no wayleave corridor generated yet: show every parcel from
-  // the Wayleaves parcels layer and frame the map to their full extent.
+  // the Wayleaves parcels layer plus all Survey & Design Assets sublayers, and
+  // frame the map to Kenya's extent.
   const parcels = new FeatureLayer({
     url: CFG.parcelsLayerUrl,
     outFields: ["*"],
     title: "Parcels"
   });
 
-  let framed = false;
-  const showParcels = async () => {
-    if (framed || !mapEl.ready) return;
-    framed = true;
+  let initialized = false;
+  const onReady = async () => {
+    if (initialized || !mapEl.ready) return;
+    initialized = true;
     mapEl.map.add(parcels);
+    try {
+      await loadAssetLayers(mapEl.map);
+    } catch (err) {
+      alertUser("Asset layers", err.message, "warning");
+    }
     try {
       // Open to the extent of Kenya (the parcels sit within it).
       await mapEl.view.goTo(new Extent(CFG.kenyaExtent));
@@ -152,18 +236,12 @@ function initMap() {
   // The map lives in an initially-hidden tab, so its view becomes ready only
   // once that tab is shown. Handle both "already ready" and "ready later".
   if (mapEl.ready) {
-    showParcels();
+    onReady();
   } else {
-    mapEl.addEventListener("arcgisViewReadyChange", showParcels);
+    mapEl.addEventListener("arcgisViewReadyChange", onReady);
   }
 
-  $("generate-corridor-btn").addEventListener("click", () => {
-    alertUser(
-      "Not wired up yet",
-      "Corridor generation will call the backend server.",
-      "info"
-    );
-  });
+  wireCorridorPanel();
 }
 
 /* ------------------------------------------------------------------------ *

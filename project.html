@@ -91,25 +91,96 @@
 					<calcite-tab tab="corridor">
 						<div class="map-tab">
 							<arcgis-map id="corridor-map">
-								<arcgis-zoom position="top-left"></arcgis-zoom>
+								<arcgis-zoom position="top-right"></arcgis-zoom>
+								<arcgis-expand position="top-right" mode="floating">
+									<arcgis-layer-list></arcgis-layer-list>
+								</arcgis-expand>
 							</arcgis-map>
-							<div class="map-toolbar">
-								<calcite-button
-									scale="s"
-									icon-start="line"
-									appearance="solid"
-									kind="brand"
-									id="generate-corridor-btn">
-									Generate Corridor
-								</calcite-button>
+
+							<!-- Closable affected-parcels panel, floating over the map. -->
+							<div id="corridor-card" class="corridor-card">
+								<calcite-panel
+									id="corridor-panel"
+									heading="Affected Parcels"
+									closable>
+									<div class="corridor-body">
+										<div class="stat-total">
+											<span class="stat-total-value" id="parcels-total">0</span>
+											<span class="stat-total-label">Affected parcels</span>
+										</div>
+
+										<div class="dist-title">Acquisition distribution</div>
+										<ul class="dist-list">
+											<li>
+												<span class="dist-dot dot-not-acquired"></span>
+												Not acquired
+												<span class="dist-count" id="dist-not-acquired">0</span>
+											</li>
+											<li>
+												<span class="dist-dot dot-acquired"></span>
+												Acquired
+												<span class="dist-count" id="dist-acquired">0</span>
+											</li>
+											<li>
+												<span class="dist-dot dot-pending"></span>
+												Pending consent signing
+												<span class="dist-count" id="dist-pending">0</span>
+											</li>
+											<li>
+												<span class="dist-dot dot-failed"></span>
+												Acquisition failed
+												<span class="dist-count" id="dist-failed">0</span>
+											</li>
+										</ul>
+
+										<p class="corridor-hint">
+											Values populate once a corridor is generated and its
+											affected parcels are computed.
+										</p>
+									</div>
+
+									<div slot="footer" class="corridor-actions">
+										<calcite-button
+											width="full"
+											icon-start="line"
+											kind="brand"
+											id="generate-corridor-btn">
+											Generate Corridor
+										</calcite-button>
+										<calcite-button
+											width="full"
+											appearance="outline"
+											icon-start="upload"
+											id="upload-parcels-btn">
+											Upload parcels (.shp)
+										</calcite-button>
+										<calcite-button
+											width="full"
+											appearance="outline"
+											icon-start="pencil-square"
+											id="digitize-parcels-btn">
+											Digitize parcels
+										</calcite-button>
+										<!-- Shapefile picker — opens but does nothing yet. -->
+										<input
+											id="parcels-input"
+											type="file"
+											accept=".shp,.zip,.dbf,.shx,.prj"
+											multiple
+											hidden />
+									</div>
+								</calcite-panel>
 							</div>
-							<calcite-notice open scale="s" kind="info" class="map-note">
-								<div slot="title">Corridor not generated yet</div>
-								<div slot="message">
-									The route, corridor and affected parcels will render here once
-									wired to the backend server.
-								</div>
-							</calcite-notice>
+
+							<!-- Shown when the panel is closed, to reopen it. -->
+							<calcite-action
+								id="corridor-reopen"
+								class="corridor-reopen"
+								icon="sliders"
+								text="Affected parcels"
+								text-enabled
+								scale="l"
+								hidden></calcite-action>
 						</div>
 					</calcite-tab>
 
