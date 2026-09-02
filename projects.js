@@ -12,7 +12,7 @@
 
 import esriConfig from "https://js.arcgis.com/4.31/@arcgis/core/config.js";
 import FeatureLayer from "https://js.arcgis.com/4.31/@arcgis/core/layers/FeatureLayer.js";
-import esriId from "https://js.arcgis.com/4.31/@arcgis/core/identity/IdentityManager.js";
+import { ensureSignedIn } from "./oauth.js";
 
 const CFG = window.APP_CONFIG;
 const $ = (id) => document.getElementById(id);
@@ -211,8 +211,7 @@ function alertUser(title, message, kind) {
 async function boot() {
   try {
     esriConfig.portalUrl = CFG.portalUrl;
-    Auth.setIdentityManager(esriId);
-    await Auth.mint();
+    await ensureSignedIn();
 
     await customElements.whenDefined("arcgis-feature-table");
     await initTable();

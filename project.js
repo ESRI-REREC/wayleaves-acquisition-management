@@ -13,7 +13,7 @@ import FeatureLayer from "https://js.arcgis.com/4.31/@arcgis/core/layers/Feature
 import GroupLayer from "https://js.arcgis.com/4.31/@arcgis/core/layers/GroupLayer.js";
 import Graphic from "https://js.arcgis.com/4.31/@arcgis/core/Graphic.js";
 import Extent from "https://js.arcgis.com/4.31/@arcgis/core/geometry/Extent.js";
-import esriId from "https://js.arcgis.com/4.31/@arcgis/core/identity/IdentityManager.js";
+import { ensureSignedIn, getServerToken } from "./oauth.js";
 
 const CFG = window.APP_CONFIG;
 const $ = (id) => document.getElementById(id);
@@ -126,7 +126,7 @@ function renderOverview(attrs) {
 /** Add every Survey_and_Design_Assets sublayer to the map, grouped so the layer
  * list stays tidy. All layers render (visible) by default. */
 async function loadAssetLayers(map) {
-  const token = await Auth.valid();
+  const token = await getServerToken();
   const res = await fetch(
     CFG.assetsServiceUrl + "?f=json&token=" + encodeURIComponent(token)
   );
@@ -320,8 +320,7 @@ async function boot() {
     if (oid == null) throw new Error("No project id in the URL (?oid=…).");
 
     esriConfig.portalUrl = CFG.portalUrl;
-    Auth.setIdentityManager(esriId);
-    await Auth.mint();
+    await ensureSignedIn();
 
     const attrs = await fetchProject(oid);
     renderHeader(attrs);
