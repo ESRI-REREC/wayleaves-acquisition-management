@@ -17,6 +17,10 @@ window.APP_CONFIG = {
   projectsLayerUrl:
     "https://development.esriea.com/server/rest/services/Hosted/electrification_projects/FeatureServer/0",
 
+  // Base filter for the projects table: only projects that have reached the
+  // Wayleave Acquisition stage. Column filters are AND-ed on top of this.
+  projectsWhere: "implementation_status = 'Wayleave Acquisition'",
+
   // Parcels polygon layer (Wayleaves service). Shown on the corridor map as the
   // default backdrop until a wayleave corridor has been generated.
   parcelsLayerUrl:
@@ -26,6 +30,13 @@ window.APP_CONFIG = {
   // corridor map (toggled via the layer list).
   assetsServiceUrl:
     "https://development.esriea.com/server/rest/services/Hosted/Survey_and_Design_Assets/FeatureServer",
+  // Portal ITEM for that service. Sublayers are loaded from the item (not the
+  // raw service url) so they inherit the symbology saved on the item's
+  // visualization — the FeatureServer's own drawingInfo is the plain default.
+  assetsItemId: "10ee7f0af04f49288240eb8a1c12a6f5",
+  // Asset sublayers whose name starts with one of these prefixes start hidden on
+  // the corridor map: the suggested_* design outputs and the existing* base layers.
+  mapHiddenLayerPrefixes: ["suggested_", "existing"],
 
   // Facilities layer — the corridor map zooms to the facility point whose
   // reference_number matches the project's.
@@ -34,8 +45,9 @@ window.APP_CONFIG = {
   // Zoom level used when framing the associated facility point.
   mapFacilityZoom: 17,
 
-  // Portal item the "Digitize parcels" button opens (e.g. a Map Viewer / editing
-  // app for drawing parcels). TODO: replace the id with the real item.
+  // The "Digitize parcels" button opens this feature item's overview page in a
+  // new tab (item.html = the portal item's overview). Replace the id below with
+  // the real feature item id once you have it.
   digitizeParcelsUrl:
     "https://development.esriea.com/portal/home/item.html?id=REPLACE_WITH_ITEM_ID",
 
@@ -75,7 +87,6 @@ window.APP_CONFIG = {
   projectColumns: [
     { field: "project_name", label: "Project Name", width: 200 },
     { field: "project_reference_number", label: "Reference No.", width: 150 },
-    { field: "implementation_status", label: "Implementation Status", width: 160 },
     { field: "funding_year", label: "Funding Year", width: 120 },
     { field: "initiator_category", label: "Initiator Category", width: 170 },
     { field: "funding_category", label: "Funding Category", width: 180 }

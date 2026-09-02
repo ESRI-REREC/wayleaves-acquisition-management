@@ -110,7 +110,11 @@ function syncFilters() {
   const clauses = Object.entries(activeFilters).map(
     ([f, v]) => `UPPER(${f}) LIKE UPPER('%${v.replace(/'/g, "''")}%')`
   );
-  projectsLayer.definitionExpression = clauses.join(" AND ");
+  const filterExpr = clauses.join(" AND ");
+  // Always keep the base wayleave-stage filter; AND the column filters on top.
+  projectsLayer.definitionExpression = filterExpr
+    ? `(${CFG.projectsWhere}) AND (${filterExpr})`
+    : CFG.projectsWhere;
   renderFilterChips();
 }
 
@@ -140,6 +144,9 @@ async function initTable() {
   projectsLayer = new FeatureLayer({
     url: CFG.projectsLayerUrl,
     outFields: ["*"],
+    // Only show projects in the Wayleave Acquisition stage; column filters
+    // (syncFilters) are AND-ed on top of this base clause.
+    definitionExpression: CFG.projectsWhere,
     // Label records by project name (e.g. in the attachments view breadcrumb)
     // instead of the default OBJECTID.
     displayField: "project_name"

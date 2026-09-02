@@ -133,18 +133,34 @@ async function loadAssetLayers(map) {
   const svc = await res.json();
   if (svc.error) throw new Error(svc.error.message || "Could not read asset layers.");
 
+  const hiddenPrefixes = CFG.mapHiddenLayerPrefixes || [];
+  const startsHidden = (name) => hiddenPrefixes.some((p) => String(name).startsWith(p));
   const group = new GroupLayer({
     title: "Survey & Design Assets",
     visibilityMode: "independent"
   });
   (svc.layers || []).forEach((l) => {
-    group.add(
-      new FeatureLayer({
-        url: CFG.assetsServiceUrl + "/" + l.id,
-        title: l.name,
-        outFields: ["*"]
+    // Load each sublayer FROM THE PORTAL ITEM (not the raw service url) so it
+    // inherits the symbology saved on the item's visualization. Falls back to
+    // the raw service url if no item id is configured.
+    const props = CFG.assetsItemId
+      ? { portalItem: { id: CFG.assetsItemId }, layerId: l.id }
+      : { url: CFG.assetsServiceUrl + "/" + l.id };
+    const layer = new FeatureLayer({
+      ...props,
+      title: l.name,
+      // suggested_* and existing* layers start switched off (config prefixes).
+      visible: !startsHidden(l.name),
+      outFields: ["*"],
+      popupEnabled: true
+    });
+    // Keep the item's configured popup if any; otherwise auto-generate one.
+    layer
+      .when(() => {
+        if (!layer.popupTemplate) layer.popupTemplate = layer.createPopupTemplate();
       })
-    );
+      .catch(() => {});
+    group.add(layer);
   });
   map.add(group);
 }
@@ -202,7 +218,7 @@ function setCorridorPanelOpen(open) {
   $("corridor-reopen").hidden = open;
 }
 
-/** Wire the corridor panel: close/reopen + the three action buttons. */
+/** Wire the corridor panel: close/reopen + the Generate/Digitize buttons. */
 function wireCorridorPanel() {
   $("corridor-panel").addEventListener("calcitePanelClose", () =>
     setCorridorPanelOpen(false)
@@ -217,15 +233,7 @@ function wireCorridorPanel() {
     );
   });
 
-  // Upload parcels .shp — opens a file picker but does nothing with it yet.
-  const input = $("parcels-input");
-  $("upload-parcels-btn").addEventListener("click", () => input.click());
-  input.addEventListener("change", () => {
-    input.value = ""; // discard the selection
-    alertUser("Received", "Parcel shapefile upload isn’t wired up yet.", "info");
-  });
-
-  // Digitize parcels — open the configured portal item in a new tab.
+  // Digitize parcels — open the configured feature item's overview page.
   $("digitize-parcels-btn").addEventListener("click", () => {
     if (CFG.digitizeParcelsUrl) {
       window.open(CFG.digitizeParcelsUrl, "_blank", "noopener");
