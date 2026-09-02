@@ -182,17 +182,15 @@
 						</div>
 					</calcite-tab>
 
-					<!-- Affected Parcels -->
+					<!-- Affected Parcels: parcels the corridor crosses. Row click opens
+					     the parcel / ownership page. -->
 					<calcite-tab tab="parcels">
-						<div class="tab-body">
-							<div class="empty-state">
-								<calcite-icon icon="parcel" scale="l"></calcite-icon>
-								<p class="empty-title">No affected parcels yet</p>
-								<p class="empty-sub">
-									Generate a corridor to compute the parcels this project
-									crosses. Parcel acquisition status will be listed here.
-								</p>
-							</div>
+						<div class="parcels-tab">
+							<arcgis-feature-table
+								id="parcels-table"
+								hide-header
+								hide-selection-column
+								attachments-enabled></arcgis-feature-table>
 						</div>
 					</calcite-tab>
 				</calcite-tabs>

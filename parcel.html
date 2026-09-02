@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en" class="calcite-mode-light">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+		<title>Parcel · Wayleave Acquisition Management</title>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"@arcgis/core/": "https://js.arcgis.com/4.31/@arcgis/core/"
+				}
+			}
+		</script>
+
+		<link
+			rel="stylesheet"
+			href="https://js.arcgis.com/calcite-components/2.13.2/calcite.css" />
+		<script
+			type="module"
+			src="https://js.arcgis.com/calcite-components/2.13.2/calcite.esm.js"></script>
+
+		<link
+			rel="stylesheet"
+			href="https://js.arcgis.com/4.31/esri/themes/light/main.css" />
+
+		<script
+			type="module"
+			src="https://js.arcgis.com/4.31/map-components/arcgis-map-components.esm.js"></script>
+
+		<!-- jsPDF (UMD) for the consent-form PDF. Exposes window.jspdf.jsPDF. -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+
+	<body>
+		<calcite-shell>
+			<calcite-panel id="parcel-panel">
+				<calcite-action
+					slot="header-actions-start"
+					icon="chevron-left"
+					text="Back to project"
+					id="back-btn"></calcite-action>
+
+				<div slot="header-content" class="project-heading">
+					<span class="project-title" id="parcel-title">Loading…</span>
+					<span class="project-ref" id="parcel-sub"></span>
+				</div>
+
+				<calcite-chip
+					slot="header-actions-end"
+					id="parcel-status"
+					scale="s"
+					kind="neutral"
+					appearance="outline"
+					hidden></calcite-chip>
+				<calcite-action
+					slot="header-actions-end"
+					icon="pencil"
+					text="Change status"
+					text-enabled
+					id="change-status-btn"></calcite-action>
+
+				<!-- Two sections: scrollable panel column (left) + map (right). -->
+				<div class="parcel-layout">
+					<div class="parcel-col">
+						<!-- Parcel information -->
+						<calcite-block heading="Parcel" icon-start="polygon-vertices" open>
+							<dl class="detail-list" id="parcel-details"></dl>
+						</calcite-block>
+
+						<!-- Owners -->
+						<calcite-block heading="Owners" icon-start="users" open>
+							<div id="owners-list" class="owners-list"></div>
+							<calcite-button
+								id="add-owner-btn"
+								icon-start="plus"
+								appearance="outline"
+								width="full">
+								Add owner
+							</calcite-button>
+						</calcite-block>
+
+						<!-- Parcel documents -->
+						<calcite-block heading="Parcel documents" icon-start="file" open>
+							<div id="parcel-attachments" class="attach-list"></div>
+							<div class="doc-actions">
+								<calcite-button
+									id="upload-ownership-btn"
+									icon-start="upload"
+									appearance="outline"
+									width="full">
+									Upload land ownership document
+								</calcite-button>
+								<calcite-button
+									id="generate-consent-btn"
+									icon-start="file-pdf"
+									kind="brand"
+									width="full">
+									Generate consent form (PDF)
+								</calcite-button>
+								<calcite-button
+									id="upload-signed-btn"
+									icon-start="upload"
+									appearance="outline"
+									width="full">
+									Upload signed consent form
+								</calcite-button>
+							</div>
+						</calcite-block>
+					</div>
+
+					<div class="parcel-map-section">
+						<arcgis-map id="parcel-map">
+							<arcgis-zoom position="top-right"></arcgis-zoom>
+							<arcgis-expand position="top-right" mode="floating" icon="legend">
+								<arcgis-legend></arcgis-legend>
+							</arcgis-expand>
+						</arcgis-map>
+					</div>
+				</div>
+			</calcite-panel>
+
+			<calcite-alert
+				id="app-alert"
+				auto-close
+				auto-close-duration="medium"
+				scale="m"
+				slot="alerts">
+				<div slot="title" id="alert-title"></div>
+				<div slot="message" id="alert-message"></div>
+			</calcite-alert>
+		</calcite-shell>
+
+		<!-- Change-status sheet -->
+		<calcite-sheet
+			id="status-sheet"
+			position="inline-end"
+			width-scale="s"
+			aria-labelledby="status-sheet-heading">
+			<calcite-panel>
+				<div slot="header-content" class="project-heading">
+					<span class="project-title" id="status-sheet-heading">Change status</span>
+				</div>
+				<calcite-action
+					slot="header-actions-end"
+					icon="x"
+					text="Close"
+					id="status-close"></calcite-action>
+
+				<div class="sheet-body">
+					<calcite-label>
+						Acquisition status
+						<calcite-select id="status-select"></calcite-select>
+					</calcite-label>
+					<p class="attach-empty" id="status-current"></p>
+				</div>
+
+				<calcite-button
+					slot="footer-start"
+					appearance="outline"
+					kind="neutral"
+					width="half"
+					id="status-cancel">
+					Cancel
+				</calcite-button>
+				<calcite-button slot="footer-end" width="half" id="status-submit">
+					Save status
+				</calcite-button>
+			</calcite-panel>
+		</calcite-sheet>
+
+		<!-- Add-owner sheet -->
+		<calcite-sheet
+			id="owner-sheet"
+			position="inline-end"
+			width-scale="m"
+			aria-labelledby="owner-sheet-heading">
+			<calcite-panel>
+				<div slot="header-content" class="project-heading">
+					<span class="project-title" id="owner-sheet-heading">Add owner</span>
+				</div>
+				<calcite-action
+					slot="header-actions-end"
+					icon="x"
+					text="Close"
+					id="owner-close"></calcite-action>
+
+				<div class="sheet-body">
+					<calcite-label>
+						Name <span class="req">*</span>
+						<calcite-input id="owner-name"></calcite-input>
+					</calcite-label>
+					<calcite-label>
+						ID Number
+						<calcite-input id="owner-id"></calcite-input>
+					</calcite-label>
+					<calcite-label>
+						KRA PIN
+						<calcite-input id="owner-kra"></calcite-input>
+					</calcite-label>
+					<calcite-label>
+						Phone number
+						<calcite-input id="owner-phone" type="tel"></calcite-input>
+					</calcite-label>
+					<calcite-label>
+						Share percentage
+						<calcite-input
+							id="owner-share"
+							type="number"
+							min="0"
+							max="100"
+							suffix-text="%"></calcite-input>
+					</calcite-label>
+					<calcite-label layout="inline">
+						<calcite-switch id="owner-primary"></calcite-switch>
+						Primary owner
+					</calcite-label>
+				</div>
+
+				<calcite-button
+					slot="footer-start"
+					appearance="outline"
+					kind="neutral"
+					width="half"
+					id="owner-cancel">
+					Cancel
+				</calcite-button>
+				<calcite-button slot="footer-end" width="half" id="owner-submit">
+					Save owner
+				</calcite-button>
+			</calcite-panel>
+		</calcite-sheet>
+
+		<calcite-scrim id="boot-scrim" loading></calcite-scrim>
+
+		<script src="config.js"></script>
+		<script type="module" src="parcel.js"></script>
+	</body>
+</html>

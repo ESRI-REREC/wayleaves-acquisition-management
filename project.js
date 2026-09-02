@@ -200,8 +200,7 @@ async function centerOnFacility(view, ref) {
   }
 }
 
-/** Populate the affected-parcels panel. Zeros until the backend computes the
- * corridor's affected parcels; call with real counts once wired. */
+/** Populate the affected-parcels panel. Zeros until the parcels are loaded. */
 function renderAcquisitionStats(stats) {
   const s = stats || { total: 0, notAcquired: 0, acquired: 0, pending: 0, failed: 0 };
   $("parcels-total").textContent = s.total;
@@ -209,6 +208,103 @@ function renderAcquisitionStats(stats) {
   $("dist-acquired").textContent = s.acquired;
   $("dist-pending").textContent = s.pending;
   $("dist-failed").textContent = s.failed;
+}
+
+/** acquisition_status value -> its distribution bucket (statuses match the GP
+ * tool's seed + the panel's rows). */
+const STATUS_BUCKET = {
+  "not acquired": "notAcquired",
+  "acquired": "acquired",
+  "pending consent signing": "pending",
+  "acquisition failed": "failed"
+};
+
+/** Query the parcels tagged with this project (the corridor GP tool appends the
+ * reference to each affected parcel's wayleave_id list), then fill the
+ * distribution panel and the Affected Parcels table. */
+async function loadAffectedParcels(reference) {
+  if (!reference) return;
+  try {
+    const layer = new FeatureLayer({ url: CFG.parcelsLayerUrl, outFields: ["*"] });
+    await layer.load();
+    const result = await layer.queryFeatures({
+      where: `wayleave_id LIKE '%${reference.replace(/'/g, "''")}%'`,
+      outFields: ["parcel_no", "lr_no", "acquisition_status", "wayleave_id"],
+      returnGeometry: false
+    });
+    // wayleave_id is a ';'-separated list of references — keep exact members only
+    // (so a LIKE substring hit on another reference can't leak in).
+    const rows = (result.features || [])
+      .map((f) => f.attributes)
+      .filter((a) =>
+        String(a.wayleave_id || "")
+          .split(";")
+          .map((s) => s.trim())
+          .includes(reference)
+      );
+    renderAffectedParcels(rows);
+  } catch (err) {
+    alertUser("Affected parcels", err.message, "warning");
+  }
+}
+
+/** Compute the acquisition distribution and render the table from the rows. */
+function renderAffectedParcels(rows) {
+  const stats = { total: rows.length, notAcquired: 0, acquired: 0, pending: 0, failed: 0 };
+  rows.forEach((a) => {
+    const bucket = STATUS_BUCKET[String(a.acquisition_status || "").trim().toLowerCase()];
+    if (bucket) stats[bucket] += 1;
+  });
+  renderAcquisitionStats(stats);
+}
+
+/** Bind the Affected Parcels <arcgis-feature-table> to this project's parcels
+ * (attachments on), with parcel_no / lr_no / acquisition_status columns. Row
+ * click opens the parcel / ownership page. */
+async function initParcelsTable(reference, projectOid) {
+  const tableEl = $("parcels-table");
+  if (!tableEl || !reference) return;
+  await customElements.whenDefined("arcgis-feature-table");
+
+  const layer = new FeatureLayer({
+    url: CFG.parcelsLayerUrl,
+    outFields: ["*"],
+    definitionExpression: `wayleave_id LIKE '%${reference.replace(/'/g, "''")}%'`
+  });
+  await layer.load();
+
+  tableEl.tableTemplate = {
+    columnTemplates: [
+      { type: "field", fieldName: "parcel_no", label: "Parcel No.", width: 220, autoWidth: false },
+      { type: "field", fieldName: "lr_no", label: "LR No.", width: 200, autoWidth: false },
+      { type: "field", fieldName: "acquisition_status", label: "Acquisition Status", width: 180, autoWidth: false }
+    ]
+  };
+  tableEl.layer = layer;
+
+  tableEl.addEventListener("arcgisCellClick", (event) => {
+    const oid = objectIdFromCellEvent(event);
+    if (oid == null) return;
+    const params = new URLSearchParams({
+      oid: String(oid),
+      ref: reference,
+      project: String(projectOid)
+    });
+    window.location.href = "parcel.html?" + params.toString();
+  });
+}
+
+/** Pull the objectid out of a feature-table cell-click event (tolerant of API
+ * shapes). */
+function objectIdFromCellEvent(event) {
+  const d = event.detail || {};
+  const feature =
+    d.feature || d.graphic || (d.item && d.item.feature) || (d.target && d.target.feature);
+  if (feature && feature.attributes) {
+    const a = feature.attributes;
+    return a.objectid ?? a.OBJECTID ?? a.ObjectId ?? null;
+  }
+  return d.objectId != null ? d.objectId : null;
 }
 
 /** Show / hide the floating affected-parcels panel. */
@@ -243,6 +339,27 @@ function wireCorridorPanel() {
   renderAcquisitionStats(); // zeros for now
 }
 
+/** Unique-value renderer that fills parcels by acquisition status (matches the
+ * Affected Parcels panel legend dots). */
+function acquisitionRenderer() {
+  const fill = (rgb) => ({
+    type: "simple-fill",
+    color: [rgb[0], rgb[1], rgb[2], 0.55],
+    outline: { color: rgb, width: 1.5 }
+  });
+  return {
+    type: "unique-value",
+    field: "acquisition_status",
+    defaultSymbol: fill([110, 110, 110]),
+    uniqueValueInfos: [
+      { value: "Not acquired", symbol: fill([110, 110, 110]) },
+      { value: "Acquired", symbol: fill([53, 172, 70]) },
+      { value: "Pending consent signing", symbol: fill([245, 168, 0]) },
+      { value: "Acquisition failed", symbol: fill([216, 48, 32]) }
+    ]
+  };
+}
+
 function initMap(attrs) {
   const mapEl = $("corridor-map");
   mapEl.basemap = CFG.basemap;
@@ -253,10 +370,41 @@ function initMap(attrs) {
   // Default state — no wayleave corridor generated yet: show every parcel from
   // the Wayleaves parcels layer plus all Survey & Design Assets sublayers, and
   // zoom to the project's associated facility (falling back to Kenya's extent).
+  // Load parcels + corridor from the Wayleaves portal item so they render with
+  // the item's configured symbology (fall back to the raw service url).
   const parcels = new FeatureLayer({
-    url: CFG.parcelsLayerUrl,
+    ...(CFG.wayleavesItemId
+      ? { portalItem: { id: CFG.wayleavesItemId }, layerId: CFG.parcelsLayerId }
+      : { url: CFG.parcelsLayerUrl }),
     outFields: ["*"],
     title: "Parcels"
+  });
+
+  // This project's wayleave corridor polygon (output of the corridor GP tool),
+  // filtered to its reference_number and drawn on top of the parcels.
+  const ref = attrs && attrs.project_reference_number;
+  const corridorLayer = new FeatureLayer({
+    ...(CFG.wayleavesItemId
+      ? { portalItem: { id: CFG.wayleavesItemId }, layerId: CFG.corridorLayerId }
+      : { url: CFG.corridorLayerUrl }),
+    outFields: ["*"],
+    title: "Wayleave Corridor",
+    definitionExpression: ref
+      ? `reference_number = '${String(ref).replace(/'/g, "''")}'`
+      : "1=0"
+  });
+
+  // Affected parcels (crossed by this project's corridor), coloured by
+  // acquisition status and drawn over the base parcels (which keep service
+  // symbology). Matched by this project's reference in the wayleave_id list.
+  const affectedParcels = new FeatureLayer({
+    url: CFG.parcelsLayerUrl,
+    outFields: ["*"],
+    title: "Affected Parcels",
+    definitionExpression: ref
+      ? `wayleave_id LIKE '%${String(ref).replace(/'/g, "''")}%'`
+      : "1=0",
+    renderer: acquisitionRenderer()
   });
 
   let initialized = false;
@@ -264,6 +412,8 @@ function initMap(attrs) {
     if (initialized || !mapEl.ready) return;
     initialized = true;
     mapEl.map.add(parcels);
+    mapEl.map.add(affectedParcels);
+    mapEl.map.add(corridorLayer);
     try {
       await loadAssetLayers(mapEl.map);
     } catch (err) {
@@ -328,6 +478,9 @@ async function boot() {
 
     await customElements.whenDefined("arcgis-map");
     initMap(attrs);
+
+    await loadAffectedParcels(attrs.project_reference_number);
+    await initParcelsTable(attrs.project_reference_number, oid);
   } catch (err) {
     $("project-title").textContent = "Could not load project";
     alertUser("Error", err.message, "danger");

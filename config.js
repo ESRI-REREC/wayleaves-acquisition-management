@@ -31,6 +31,27 @@ window.APP_CONFIG = {
 	parcelsLayerUrl:
 		"https://development.esriea.com/server/rest/services/Hosted/Wayleaves/FeatureServer/0",
 
+	// Wayleave corridor polygons (output of the corridor GP tool). Drawn on the
+	// corridor map filtered to this project's reference_number.
+	corridorLayerUrl:
+		"https://development.esriea.com/server/rest/services/Hosted/Wayleaves/FeatureServer/1",
+
+	// Portal ITEM for the Wayleaves service. Parcels (layer 0) and corridor
+	// (layer 1) are loaded from this item so they inherit the item's configured
+	// symbology instead of the raw service default.
+	wayleavesItemId: "b699800364994e2fa065e2b5eaa0e86d",
+	parcelsLayerId: 0,
+	corridorLayerId: 1,
+
+	// Land owners table (non-spatial). Linked to a parcel by parcel_no; edited
+	// from the parcel/ownership page (parcel.html). Attachments = owner ID / KRA.
+	ownersTableUrl:
+		"https://development.esriea.com/server/rest/services/Hosted/Wayleaves/FeatureServer/2",
+
+	// Design route line sublayers (Survey & Design Assets) drawn on the parcel
+	// snippet, filtered to the project's reference_number.
+	routeLayerIds: [13, 14, 1],
+
 	// Survey & Design Assets feature service — every sublayer is added to the
 	// corridor map (toggled via the layer list).
 	assetsServiceUrl:
@@ -81,10 +102,9 @@ window.APP_CONFIG = {
 		spatialReference: { wkid: 102100, latestWkid: 3857 }
 	},
 
-	// Imagery basemap to match the reference design (satellite + labels).
-	// Or "portal-default" to use the org's configured basemap, or any well-known
-	// id: "topo-vector", "streets-vector", "hybrid", "satellite", "gray-vector".
-	basemap: "hybrid",
+	// Default basemap for the corridor map: Light Gray Canvas (vector). Change to
+	// "portal-default" for the org's basemap, or "hybrid" / "topo-vector" / etc.
+	basemap: "gray-vector",
 
 	/* Columns rendered in the projects table, in order. Every `field` must exist
 	 * on the service. `label` overrides the field alias in the header. The page
