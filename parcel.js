@@ -472,82 +472,89 @@ function wireParcelDocs() {
   $("generate-consent-btn").addEventListener("click", generateConsentPdf);
 }
 
-/** Build a consent-form PDF (client-side, jsPDF) from the parcel + owners, with
- * a snapshot of the parcel map as the attached plan. */
+/** Build the download: the organisation's consent_form.pdf template as page 1,
+ * with the site map (the parcel section + wayleave corridor + route) appended as
+ * the last page — merged into one PDF with pdf-lib. */
 async function generateConsentPdf() {
-  const jsPDF = window.jspdf && window.jspdf.jsPDF;
-  if (!jsPDF) return alertUser("PDF unavailable", "The PDF library did not load.", "danger");
+  const PDFLib = window.PDFLib;
+  if (!PDFLib) return alertUser("PDF unavailable", "The PDF library did not load.", "danger");
 
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const margin = 48;
-  let y = margin;
+  const btn = $("generate-consent-btn");
+  btn.loading = true;
+  try {
+    // 1. Load the official consent-form template (page 1).
+    const tplBytes = await (await fetch("consent_form.pdf")).arrayBuffer();
+    const pdf = await PDFLib.PDFDocument.load(tplBytes);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("WAYLEAVE CONSENT FORM", pageW / 2, y, { align: "center" });
-  y += 30;
-
-  const row = (text, gap = 18, bold = false) => {
-    doc.setFont("helvetica", bold ? "bold" : "normal");
-    doc.setFontSize(11);
-    doc.text(String(text), margin, y);
-    y += gap;
-  };
-
-  row(`Project reference: ${P.ref || "—"}`);
-  row(`Parcel No.: ${parcelAttrs.parcel_no || "—"}`);
-  row(`L.R. No.: ${parcelAttrs.lr_no || "—"}`);
-  row(`Approx. size: ${parcelAttrs.size != null ? parcelAttrs.size : "—"}`);
-  y += 8;
-
-  row("Registered owner(s):", 20, true);
-  if (ownerRows.length) {
-    ownerRows.forEach((o, i) => {
-      row(
-        `${i + 1}. ${o.name || "—"}   ID: ${o.id || "—"}   KRA: ${o.kra_pin || "—"}   ` +
-          `Share: ${o.share_pct != null ? o.share_pct + "%" : "—"}` +
-          (Number(o.is_primary_owner) === 1 ? "   (Primary)" : ""),
-        16
-      );
-    });
-  } else {
-    row("(none recorded)", 16);
-  }
-  y += 16;
-
-  const consent =
-    "I/We, the registered owner(s) named above, hereby grant consent for the " +
-    "establishment of an electricity wayleave corridor across the above parcel, " +
-    "as shown in the attached plan, subject to the agreed terms and compensation.";
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  const wrapped = doc.splitTextToSize(consent, pageW - 2 * margin);
-  doc.text(wrapped, margin, y);
-  y += wrapped.length * 15 + 28;
-
-  (ownerRows.length ? ownerRows : [{ name: "" }]).forEach((o) => {
-    row(`Owner: ${o.name || ""}`, 24);
-    row("Signature: ______________________________     Date: ________________", 34);
-  });
-
-  // Attach the parcel map as the plan on a second page.
-  if (mapView) {
-    try {
-      const shot = await mapView.takeScreenshot({ format: "png", width: 1200 });
-      doc.addPage();
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.text("Plan", margin, margin);
-      const imgW = pageW - 2 * margin;
-      const imgH = imgW * (shot.data.height / shot.data.width);
-      doc.addImage(shot.dataUrl, "PNG", margin, margin + 14, imgW, imgH);
-    } catch (_) {
-      /* screenshot unavailable — leave the text-only form */
+    // 2. Capture the site map, framed to the parcel (with a little context).
+    let shot = null;
+    if (mapView) {
+      try {
+        if (parcelGeom && parcelGeom.extent) {
+          await mapView.goTo(parcelGeom.extent.clone().expand(1.2));
+        }
+        shot = await mapView.takeScreenshot({ format: "png", width: 1400 });
+        if (parcelGeom && parcelGeom.extent) mapView.goTo(parcelGeom.extent).catch(() => {});
+      } catch (_) {
+        shot = null; // capture unavailable — still export the template alone
+      }
     }
-  }
 
-  doc.save(slug(parcelAttrs.parcel_no, "parcel") + "_consent.pdf");
+    // 3. Append the site-map page.
+    if (shot) {
+      const pngBytes = await (await fetch(shot.dataUrl)).arrayBuffer();
+      const png = await pdf.embedPng(pngBytes);
+      const font = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+      const bold = await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+
+      const pageW = 595.28; // A4 portrait, points
+      const pageH = 841.89;
+      const margin = 40;
+      const page = pdf.addPage([pageW, pageH]);
+
+      const title = "SITE MAP";
+      page.drawText(title, {
+        x: (pageW - bold.widthOfTextAtSize(title, 16)) / 2,
+        y: pageH - margin,
+        size: 16,
+        font: bold
+      });
+      const sub = `Parcel ${parcelAttrs.parcel_no || "-"}    L.R. ${parcelAttrs.lr_no || "-"}    Ref ${P.ref || "-"}`;
+      page.drawText(sub, {
+        x: (pageW - font.widthOfTextAtSize(sub, 10)) / 2,
+        y: pageH - margin - 18,
+        size: 10,
+        font
+      });
+
+      // Fit the map image inside the page, preserving aspect ratio.
+      const top = pageH - margin - 40;
+      const availW = pageW - 2 * margin;
+      const availH = top - margin;
+      const ratio = png.height / png.width;
+      let w = availW;
+      let h = w * ratio;
+      if (h > availH) {
+        h = availH;
+        w = h / ratio;
+      }
+      page.drawImage(png, { x: (pageW - w) / 2, y: top - h, width: w, height: h });
+    }
+
+    // 4. Download the merged PDF.
+    const bytes = await pdf.save();
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Wayleave_Consent_Form_" + slug(parcelAttrs.parcel_no, "parcel") + ".pdf";
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alertUser("Could not generate PDF", err.message, "danger");
+  } finally {
+    btn.loading = false;
+  }
 }
 
 /* ------------------------------------------------------------------------ *
