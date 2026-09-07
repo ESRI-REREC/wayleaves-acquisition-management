@@ -72,10 +72,9 @@ window.APP_CONFIG = {
 	mapFacilityZoom: 17,
 
 	// The "Digitize parcels" button opens this feature item's overview page in a
-	// new tab (item.html = the portal item's overview). Replace the id below with
-	// the real feature item id once you have it.
+	// new tab (item.html = the portal item's overview).
 	digitizeParcelsUrl:
-		"https://development.esriea.com/portal/home/item.html?id=REPLACE_WITH_ITEM_ID",
+		"https://development.esriea.com/portal/home/item.html?id=b99e87c16dae4707a4b49b3c336d30a5",
 
 	// Token server (../server). Holds the credentials and exposes GET /api/token.
 	// No trailing slash. Swap this for your local Next.js dev server
