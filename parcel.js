@@ -32,6 +32,7 @@ let parcelOid = null; // this parcel's objectid
 let ownerRows = []; // current owners' attributes (for the consent PDF)
 let mapView = null; // the parcel map view (for the consent-form plan snapshot)
 let parcelGraphic = null; // the parcel highlight (recoloured on status change)
+let consentUrl = null; // object URL of the last-generated consent PDF
 
 const fieldTypes = {}; // parcel field name -> esri type, for date formatting
 
@@ -541,15 +542,39 @@ async function generateConsentPdf() {
       page.drawImage(png, { x: (pageW - w) / 2, y: top - h, width: w, height: h });
     }
 
-    // 4. Download the merged PDF.
+    // 4. Offer the merged PDF: attempt a direct download AND surface a visible,
+    //    user-clickable link. The link is the reliable path when the app runs
+    //    inside an ArcGIS Experience iframe that blocks auto-downloads.
     const bytes = await pdf.save();
     const blob = new Blob([bytes], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
+    if (consentUrl) URL.revokeObjectURL(consentUrl);
+    consentUrl = URL.createObjectURL(blob);
+    const filename = "Wayleave_Consent_Form_" + slug(parcelAttrs.parcel_no, "parcel") + ".pdf";
+
+    // Best case: trigger the download directly.
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "Wayleave_Consent_Form_" + slug(parcelAttrs.parcel_no, "parcel") + ".pdf";
+    a.href = consentUrl;
+    a.download = filename;
+    a.rel = "noopener";
+    if (window.self !== window.top) a.target = "_blank"; // escape the frame
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+
+    // Persistent fallback: a link the user clicks directly (a fresh user gesture
+    // opens the PDF in a new top-level tab even from within an embed).
+    const result = $("consent-result");
+    if (result) {
+      result.innerHTML = "";
+      const link = document.createElement("a");
+      link.href = consentUrl;
+      link.download = filename;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.className = "consent-link";
+      link.textContent = "Open / download consent form (PDF)";
+      result.appendChild(link);
+    }
   } catch (err) {
     alertUser("Could not generate PDF", err.message, "danger");
   } finally {

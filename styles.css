@@ -409,6 +409,28 @@ arcgis-map {
 	margin-block-start: 0.5rem;
 }
 
+.consent-result {
+	margin-block-start: 0.6rem;
+}
+
+.consent-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--calcite-color-brand);
+	text-decoration: none;
+}
+
+.consent-link::before {
+	content: "\2193"; /* down arrow */
+}
+
+.consent-link:hover {
+	text-decoration: underline;
+}
+
 .attach-list {
 	display: flex;
 	flex-direction: column;
